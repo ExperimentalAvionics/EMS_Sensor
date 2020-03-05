@@ -16,6 +16,9 @@
 
 #include <mcp_can.h>
 
+//EMS Sensor Board configuration - 4 or 6 cylinders engine
+const int CYL = 4;
+
 const int CAN_CS_PIN = 10;   //CS pin for CAN board
 const int TCS_CS_PIN = 9;    //CS pin for Thermo-Couple Sensor chip
 
@@ -299,7 +302,7 @@ if (millis() > CAN_FT_Timestamp + CAN_FT_Period + random(0, 50)) {
 
   CAN.sendMsgBuf(CAN_FT_Msg_ID, 0, 2, canMsg); 
 
-  Serial.print("TankLevel1e: ");
+  Serial.print("TankLevel1: ");
   Serial.println(TankLevel1);
  // LoopTimer = millis();
   
@@ -384,22 +387,23 @@ if (millis() > CAN_TMP_Timestamp + CAN_TMP_Period + random(0, 50)) {
 
   delay(35);
   CAN.sendMsgBuf(CAN_TMP_Msg_ID+1, 0, 8, canMsg); 
+
+  if (CYL == 6) {
+    canMsg[0] = EGT[5];
+    canMsg[1] = EGT[5] >> 8;
   
-  canMsg[0] = EGT[5];
-  canMsg[1] = EGT[5] >> 8;
-
-  canMsg[2] = EGT[6];
-  canMsg[3] = EGT[6] >> 8;
-
-  canMsg[4] = CHT[5];
-  canMsg[5] = CHT[5] >> 8;
-
-  canMsg[6] = CHT[6];
-  canMsg[7] = CHT[6] >> 8;
-
-  delay(35);
-  CAN.sendMsgBuf(CAN_TMP_Msg_ID+2, 0, 8, canMsg); 
+    canMsg[2] = EGT[6];
+    canMsg[3] = EGT[6] >> 8;
   
+    canMsg[4] = CHT[5];
+    canMsg[5] = CHT[5] >> 8;
+  
+    canMsg[6] = CHT[6];
+    canMsg[7] = CHT[6] >> 8;
+  
+    delay(35);
+    CAN.sendMsgBuf(CAN_TMP_Msg_ID+2, 0, 8, canMsg); 
+  }
   CAN_TMP_Timestamp = millis();
 }
 
@@ -453,5 +457,3 @@ if (millis() > CAN_RPM_Timestamp + CAN_RPM_Period + random(0, 50)) {
  LoopCounter++;
  
 }
-
-

@@ -1,11 +1,11 @@
 void TimingMeter0()
  {
-   Counter0++;
+   Counter0++;  // RPM Counter
  }
 
  void TimingMeter1()
  {
-   Counter1++;
+   Counter1++;  // Fuel Flow counter
  }
 
  void Get_RPM () {
@@ -44,4 +44,3 @@ void TimingMeter0()
    FlowTimestamp = millis();
   
  }
-

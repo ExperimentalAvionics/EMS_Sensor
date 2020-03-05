@@ -2,64 +2,89 @@
 void configure_channels()
 {
   uint8_t channel_number;
-  uint32_t channel_assignment_data;
+  uint32_t channel_assignment_data = 0;
 
   // ----- Channel 20: Assign Cold Junction Sensor (transistor used as a diode) -----
-  channel_assignment_data =  channel_assignment_data =    SENSOR_TYPE__OFF_CHIP_DIODE |    DIODE_SINGLE_ENDED |    DIODE_NUM_READINGS__2 |    DIODE_AVERAGING_OFF |    DIODE_CURRENT__20UA_80UA_160UA |    (uint32_t) 0x103200 << DIODE_IDEALITY_FACTOR_LSB;   // diode - ideality factor(eta): -- 0x103200
+  channel_assignment_data =  channel_assignment_data =    SENSOR_TYPE__OFF_CHIP_DIODE |    DIODE_SINGLE_ENDED |    DIODE_NUM_READINGS__3 |    DIODE_AVERAGING_ON |  DIODE_CURRENT__80UA_320UA_640UA |    (uint32_t) 0x103200 << DIODE_IDEALITY_FACTOR_LSB;   // diode - ideality factor(eta): -- 0x103200
   assign_channel(TCS_CS_PIN, 20, channel_assignment_data);
+
+  if (CYL == 4) { // 4 Cylinder engine board
+    // 
+    // ----------------------------------------------- EGT ---------------------------------------------------------
+    channel_assignment_data = SENSOR_TYPE__TYPE_K_THERMOCOUPLE |    TC_COLD_JUNCTION_CH__20 |    TC_DIFFERENTIAL |    TC_OPEN_CKT_DETECT__YES |    TC_OPEN_CKT_DETECT_CURRENT__10UA;
+
+    // ----- Channel 1: Assign  -----
+    assign_channel(TCS_CS_PIN, 2, channel_assignment_data);
   
-  // ----------------------------------------------- EGT ---------------------------------------------------------
-  channel_assignment_data = SENSOR_TYPE__TYPE_K_THERMOCOUPLE |    TC_COLD_JUNCTION_CH__20 |    TC_SINGLE_ENDED |    TC_OPEN_CKT_DETECT__YES |    TC_OPEN_CKT_DETECT_CURRENT__10UA;
+    // ----- Channel 2: Assign  -----
+    assign_channel(TCS_CS_PIN, 4, channel_assignment_data);
+  
+    // ----- Channel 3: Assign  -----
+    assign_channel(TCS_CS_PIN, 6, channel_assignment_data);
+  
+    // ----- Channel 4: Assign  -----
+    assign_channel(TCS_CS_PIN, 8, channel_assignment_data);
+
+    // ----------------------------------------------- CHT ---------------------------------------------------------
+    channel_assignment_data = SENSOR_TYPE__TYPE_J_THERMOCOUPLE |    TC_COLD_JUNCTION_CH__20 |    TC_DIFFERENTIAL |    TC_OPEN_CKT_DETECT__YES |    TC_OPEN_CKT_DETECT_CURRENT__10UA;
+  
+    // ----- Channel 7: Assign  -----
+    assign_channel(TCS_CS_PIN, 10, channel_assignment_data);
+  
+    // ----- Channel 8: Assign  -----
+    assign_channel(TCS_CS_PIN, 12, channel_assignment_data);
+  
+    // ----- Channel 9: Assign  -----
+    assign_channel(TCS_CS_PIN, 14, channel_assignment_data);
+  
+    // ----- Channel 10: Assign  -----
+    assign_channel(TCS_CS_PIN, 16, channel_assignment_data);
 
   
-  // ----- Channel 1: Assign  -----
-  assign_channel(TCS_CS_PIN, 1, channel_assignment_data);
-
-  // ----- Channel 2: Assign  -----
-  assign_channel(TCS_CS_PIN, 2, channel_assignment_data);
-
-  // ----- Channel 3: Assign  -----
-  assign_channel(TCS_CS_PIN, 3, channel_assignment_data);
-
-  // ----- Channel 4: Assign  -----
-  assign_channel(TCS_CS_PIN, 4, channel_assignment_data);
-
-  // ----- Channel 5: Assign  -----
-  assign_channel(TCS_CS_PIN, 5, channel_assignment_data);
-
-  // ----- Channel 6: Assign  -----
-  assign_channel(TCS_CS_PIN, 6, channel_assignment_data);
-
-  // ----------------------------------------------- CHT ---------------------------------------------------------
-  channel_assignment_data = SENSOR_TYPE__TYPE_J_THERMOCOUPLE |    TC_COLD_JUNCTION_CH__20 |    TC_SINGLE_ENDED |    TC_OPEN_CKT_DETECT__YES |    TC_OPEN_CKT_DETECT_CURRENT__10UA;
-
-  // ----- Channel 7: Assign  -----
-  assign_channel(TCS_CS_PIN, 7, channel_assignment_data);
-
-  // ----- Channel 8: Assign  -----
-  assign_channel(TCS_CS_PIN, 8, channel_assignment_data);
-
-  // ----- Channel 9: Assign  -----
-  assign_channel(TCS_CS_PIN, 9, channel_assignment_data);
-
-  // ----- Channel 10: Assign  -----
-  assign_channel(TCS_CS_PIN, 10, channel_assignment_data);
-
-  // ----- Channel 11: Assign  -----
-  assign_channel(TCS_CS_PIN, 11, channel_assignment_data);
-
-  // ----- Channel 12: Assign  -----
-  assign_channel(TCS_CS_PIN, 12, channel_assignment_data);
-
-  // ----------------------------------------------- OIL Pressure and Temperature  ---------------------------------------------------------
-  // ----- Channel 13: Assign Oil Pressure -----
-//  channel_assignment_data = SENSOR_TYPE__DIRECT_ADC |  DIRECT_ADC_SINGLE_ENDED;
-//  assign_channel(TCS_CS_PIN, 13, channel_assignment_data);
+  } else {   // 6 Cylinder engine board
+    // ----------------------------------------------- EGT ---------------------------------------------------------
+    channel_assignment_data = 0;
+    channel_assignment_data = SENSOR_TYPE__TYPE_K_THERMOCOUPLE |    TC_COLD_JUNCTION_CH__20 |    TC_SINGLE_ENDED |    TC_OPEN_CKT_DETECT__YES |    TC_OPEN_CKT_DETECT_CURRENT__10UA;
+    
+    // ----- Channel 1: Assign  -----
+    assign_channel(TCS_CS_PIN, 1, channel_assignment_data);
   
-  // ----- Channel 14: Assign Oil Temperature -----
-//  channel_assignment_data = SENSOR_TYPE__DIRECT_ADC |  DIRECT_ADC_SINGLE_ENDED;
-//  assign_channel(TCS_CS_PIN, 14, channel_assignment_data);
+    // ----- Channel 2: Assign  -----
+    assign_channel(TCS_CS_PIN, 2, channel_assignment_data);
   
+    // ----- Channel 3: Assign  -----
+    assign_channel(TCS_CS_PIN, 3, channel_assignment_data);
+  
+    // ----- Channel 4: Assign  -----
+    assign_channel(TCS_CS_PIN, 4, channel_assignment_data);
+  
+    // ----- Channel 5: Assign  -----
+    assign_channel(TCS_CS_PIN, 5, channel_assignment_data);
+  
+    // ----- Channel 6: Assign  -----
+    assign_channel(TCS_CS_PIN, 6, channel_assignment_data);
+  
+    // ----------------------------------------------- CHT ---------------------------------------------------------
+    channel_assignment_data = SENSOR_TYPE__TYPE_J_THERMOCOUPLE |    TC_COLD_JUNCTION_CH__20 |    TC_SINGLE_ENDED |    TC_OPEN_CKT_DETECT__YES |    TC_OPEN_CKT_DETECT_CURRENT__10UA;
+  
+    // ----- Channel 7: Assign  -----
+    assign_channel(TCS_CS_PIN, 7, channel_assignment_data);
+  
+    // ----- Channel 8: Assign  -----
+    assign_channel(TCS_CS_PIN, 8, channel_assignment_data);
+  
+    // ----- Channel 9: Assign  -----
+    assign_channel(TCS_CS_PIN, 9, channel_assignment_data);
+  
+    // ----- Channel 10: Assign  -----
+    assign_channel(TCS_CS_PIN, 10, channel_assignment_data);
+  
+    // ----- Channel 11: Assign  -----
+    assign_channel(TCS_CS_PIN, 11, channel_assignment_data);
+  
+    // ----- Channel 12: Assign  -----
+    assign_channel(TCS_CS_PIN, 12, channel_assignment_data);
+  }
 
 }
 
@@ -75,132 +100,168 @@ void configure_global_parameters()
 //---------------------------------------   populate vars and arrays with  data ----------------------------------
 
 void TCS_Read_All_Sensors() {
+unsigned int Channel_Multiplier = 1;
+unsigned int Channel_Max = 12;
 
-
+if (CYL == 4) { // differential sensors for 4 cyl engine
+  Channel_Multiplier = 2;
+  Channel_Max = 16;
+}
+  
   if (channel_ready(TCS_CS_PIN)) {   // see if previously requested data is available to read
+  
+      get_channel_data(TCS_CS_PIN, TCS_Channel * Channel_Multiplier, TEMPERATURE);
 
-   if (TCS_Channel == 13 || TCS_Channel == 14) {
-      get_channel_data(TCS_CS_PIN, TCS_Channel, VOLTAGE); 
-//      Serial.print("LTC loop = ");
-//      Serial.println(millis() - LoopTimer);
-   } else {
-      get_channel_data(TCS_CS_PIN, TCS_Channel, TEMPERATURE);
-   }
    Serial.print("Channel = ");
-   Serial.println(TCS_Channel);
+   Serial.println(TCS_Channel * Channel_Multiplier);
    Serial.print("Temp = ");
    Serial.println(TCS_Result);
    Serial.println("");
 
-    if (TCS_Channel == 1) {
-         EGT[1] = TCS_Result;
-         if (TCS_Error > 1) {
-             EGT[1] = 0;
-         }
-    }
 
-    if (TCS_Channel == 2) {
-         EGT[2] = TCS_Result;
-         if (TCS_Error > 1) {
-             EGT[2] = 0;
-         }
-    }
+    if (CYL == 4) {  // 4 cyl engine board
+      
+      if (TCS_Channel == 1) {
+           EGT[1] = TCS_Result;
+           if (TCS_Error > 1) {
+               EGT[1] = 0;
+           }
+      }
+  
+      if (TCS_Channel == 2) {
+           EGT[2] = TCS_Result;
+           if (TCS_Error > 1) {
+               EGT[2] = 0;
+           }
+      }
+  
+      if (TCS_Channel == 3) {
+           EGT[3] = TCS_Result;
+           if (TCS_Error > 1) {
+               EGT[3] = 0;
+           }
+      }
+      if (TCS_Channel == 4) {
+           EGT[4] = TCS_Result;
+           if (TCS_Error > 1) {
+               EGT[4] = 0;
+           }
+      }
 
-    if (TCS_Channel == 3) {
-         EGT[3] = TCS_Result;
-         if (TCS_Error > 1) {
-             EGT[3] = 0;
-         }
-    }
-    if (TCS_Channel == 4) {
-         EGT[4] = TCS_Result;
-         if (TCS_Error > 1) {
-             EGT[4] = 0;
-         }
-    }
-    if (TCS_Channel == 5) {
-         EGT[5] = TCS_Result;
-         if (TCS_Error > 1) {
-             EGT[5] = 0;
-         }
-    }
-    if (TCS_Channel == 6) {
-         EGT[6] = TCS_Result;
-         if (TCS_Error > 1) {
-             EGT[6] = 0;
-         }
-    }
-    if (TCS_Channel == 7) {
-         CHT[1] = TCS_Result;
-         if (TCS_Error > 1) {
-             CHT[1] = 0;
-         }
-    }
-    if (TCS_Channel == 8) {
-         CHT[2] = TCS_Result;
-         if (TCS_Error > 1) {
-             CHT[2] = 0;
-         }
-    }
-    if (TCS_Channel == 9) {
-         CHT[3] = TCS_Result;
-         if (TCS_Error > 1) {
-             CHT[3] = 0;
-         }
-    }
-    if (TCS_Channel == 10) {
-         CHT[4] = TCS_Result;
-         if (TCS_Error > 1) {
-             CHT[4] = 0;
-         }
-    }
-    if (TCS_Channel == 11) {
-         CHT[5] = TCS_Result;
-         if (TCS_Error > 1) {
-             CHT[5] = 0;
-         }
-    }
-    if (TCS_Channel == 12) {
-         CHT[6] = TCS_Result;
-         if (TCS_Error > 1) {
-             CHT[6] = 0;
-         }
-    }
+      if (TCS_Channel == 5) {
+           CHT[1] = TCS_Result;
+           if (TCS_Error > 1) {
+               CHT[1] = 0;
+           }
+      }
+      if (TCS_Channel == 6) {
+           CHT[2] = TCS_Result;
+           if (TCS_Error > 1) {
+               CHT[2] = 0;
+           }
+      }
+      if (TCS_Channel == 7) {
+           CHT[3] = TCS_Result;
+           if (TCS_Error > 1) {
+               CHT[3] = 0;
+           }
+      }
+      if (TCS_Channel == 8) {
+           CHT[4] = TCS_Result;
+           if (TCS_Error > 1) {
+               CHT[4] = 0;
+           }
+      }
+      EGT[5] = 32767;
+      EGT[6] = 32767;
+      CHT[5] = 32767;
+      CHT[6] = 32767;
 
-//-------------------------------------------------------- OIL sensors  -----------------------------
-// Oil Pressure
-    if (TCS_Channel == 13) {
-         OIL_Pressure = 400.0 * TCS_Result;
-     //    Serial.print("Oil Pressure = ");
-     //    Serial.println(TCS_Result);
-//         if (TCS_Error > 1) {
-//             OIL_Pressure = 0;
-//         }
+    } else {  // 6 cyl engine board
+      if (TCS_Channel == 1) {
+           EGT[1] = TCS_Result;
+           if (TCS_Error > 1) {
+               EGT[1] = 0;
+           }
+      }
+  
+      if (TCS_Channel == 2) {
+           EGT[2] = TCS_Result;
+           if (TCS_Error > 1) {
+               EGT[2] = 0;
+           }
+      }
+  
+      if (TCS_Channel == 3) {
+           EGT[3] = TCS_Result;
+           if (TCS_Error > 1) {
+               EGT[3] = 0;
+           }
+      }
+      if (TCS_Channel == 4) {
+           EGT[4] = TCS_Result;
+           if (TCS_Error > 1) {
+               EGT[4] = 0;
+           }
+      }
+      if (TCS_Channel == 5) {
+           EGT[5] = TCS_Result;
+           if (TCS_Error > 1) {
+               EGT[5] = 0;
+           }
+      }
+      if (TCS_Channel == 6) {
+           EGT[6] = TCS_Result;
+           if (TCS_Error > 1) {
+               EGT[6] = 0;
+           }
+      }
+      if (TCS_Channel == 7) {
+           CHT[1] = TCS_Result;
+           if (TCS_Error > 1) {
+               CHT[1] = 0;
+           }
+      }
+      if (TCS_Channel == 8) {
+           CHT[2] = TCS_Result;
+           if (TCS_Error > 1) {
+               CHT[2] = 0;
+           }
+      }
+      if (TCS_Channel == 9) {
+           CHT[3] = TCS_Result;
+           if (TCS_Error > 1) {
+               CHT[3] = 0;
+           }
+      }
+      if (TCS_Channel == 10) {
+           CHT[4] = TCS_Result;
+           if (TCS_Error > 1) {
+               CHT[4] = 0;
+           }
+      }
+      if (TCS_Channel == 11) {
+           CHT[5] = TCS_Result;
+           if (TCS_Error > 1) {
+               CHT[5] = 0;
+           }
+      }
+      if (TCS_Channel == 12) {
+           CHT[6] = TCS_Result;
+           if (TCS_Error > 1) {
+               CHT[6] = 0;
+           }
+      }
     }
-
-//Oil Temperature
-    if (TCS_Channel == 14) {
-         OIL_Temperature = 50.0 * TCS_Result;
-//         if (TCS_Error > 1) {
-//             OIL_Temperature = 0;
-//         }
-    }
-
-
-
+    
   TCS_Channel++;
 
  
-  if (TCS_Channel > 20) {
+  if (TCS_Channel * Channel_Multiplier > Channel_Max) {
     TCS_Channel = 1;
-    
-    //request_All_channels(TCS_CS_PIN);
-    //Serial.print("LTC loop = ");
-    //Serial.println(millis() - LoopTimer);
-    //LoopTimer = millis();
   }
- // LoopTimer = millis();
-  request_channel(TCS_CS_PIN, TCS_Channel);
+
+  request_channel(TCS_CS_PIN, TCS_Channel * Channel_Multiplier);
 }
 
 }
@@ -257,7 +318,7 @@ void get_channel_data(uint8_t chip_select, uint8_t channel_number, uint8_t chann
   TCS_Error = fault_data;
  // print_fault_data(fault_data);
 
-/*
+
   if (TCS_Error>1) {
 
    Serial.print(F("\nChannel "));
@@ -287,7 +348,7 @@ void get_channel_data(uint8_t chip_select, uint8_t channel_number, uint8_t chann
   if (fault_data == 0b11111111)
     Serial.println(F("CONFIGURATION ERROR !!!!!!"));
   }
-*/
+
 
 
   signed_data = raw_conversion_result;
@@ -307,8 +368,8 @@ void get_channel_data(uint8_t chip_select, uint8_t channel_number, uint8_t chann
   else if (channel_output == VOLTAGE)
   {
     scaled_result = float(signed_data) / 2097152;
-   // Serial.print(F("  Direct ADC reading in V = "));
-   // Serial.println(scaled_result);
+    //Serial.print(F("  Direct ADC reading in V = "));
+    //Serial.println(scaled_result);
   }
 
 
@@ -317,7 +378,3 @@ void get_channel_data(uint8_t chip_select, uint8_t channel_number, uint8_t chann
   
   TCS_Result = scaled_result;
 }
-
-
-
-
