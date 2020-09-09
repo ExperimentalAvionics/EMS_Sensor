@@ -88,7 +88,8 @@ unsigned int TCS_Channel = 1;
 const unsigned int CAN_EL_Msg_ID = 85; // CAN Msg ID in DEC 
 const unsigned int CAN_EL_Period = 200; // How often message sent in milliseconds
 unsigned long CAN_EL_Timestamp = 0; // when was the last message sent
-unsigned int tmp_EL = 0;
+int tmp_EL = 0;
+
 
 
 // Total Time counters
@@ -313,9 +314,30 @@ if (millis() > CAN_FT_Timestamp + CAN_FT_Period + random(0, 50)) {
 // ======================== Send OIL data =========================================================================
 if (millis() > CAN_OIL_Timestamp + CAN_OIL_Period + random(0, 50)) {
 
+// Oil pressure, A3 input
+  OIL_Pressure = analogRead(3);
+
+  // Pressure sensor range: up to 150 PSI (~10 bars)
+  // sensor supplies voltage 0.5 - 4.5v proportional to pressure 1 - 10 bars
+  // Information sent in millibars, Bars x 1000 (kPa x 10)
+  // Reading shift
+  // S = 0.5*1024/5 = 102
+  // Reading conversion coefficient:
+  // K = ((10 - 1)/(4.5 - 0.5))*(5/1024) = 0.010986
+  // Convert to millibars K * 1000 = 10.98633
+
+  OIL_Pressure = OIL_Pressure - 102; // apply shift
+  OIL_Pressure = (float)OIL_Pressure * 10.98633;
+
   canMsg[0] = OIL_Pressure;
   canMsg[1] = OIL_Pressure >> 8;
 
+// Oil Temperature. A5 input
+  //OIL_Temperature = analogRead(5);
+  // Information sent in degrees Celsius x 10
+   
+  Get_OilTemperature(); // OIL_Temperature variable populated by this function
+  
   canMsg[2] = OIL_Temperature;
   canMsg[3] = OIL_Temperature >> 8;
 
@@ -328,26 +350,49 @@ if (millis() > CAN_OIL_Timestamp + CAN_OIL_Period + random(0, 50)) {
 // ==================================== Send Electric data ====================================================
 if (millis() > CAN_EL_Timestamp + CAN_EL_Period + random(0, 50)) {
 
+// Main Electric Bus Volts. A0 input
   tmp_EL = analogRead(0);
   // the ADC works via trim pot adjusted to return max reading 1024 at 20v
 
   // convert the value into millivolts = tmp_EL * 20* 1000/1024;
   tmp_EL = (float)tmp_EL * 19.5;
-
   
   canMsg[0] = tmp_EL;
   canMsg[1] = tmp_EL >> 8;
 
-  //Serial.print("ADC 0: ");
-  //Serial.println(tmp_EL);
-  
-
+// Alternator Amps. A1 input
   tmp_EL = analogRead(1);
+  
+  // convert the value into milliamps based on the parameters of the sensor
+  // for 40A/75mV shunt with LMP8603 amplifier (zero-center with x100 amplification) with standard 5v reference voltage
+  // K = (5*40)/(1024*0.075*100) = 0.026041666(A)
+  // * 1000(mA) = 26.0417
+  
+  tmp_EL = tmp_EL - 512;  // amplifier is centre-zero. At zero current the voltage will be 2.5 volts (half the 1024 units range)
+  
+  tmp_EL = (float)tmp_EL * 26.0417;
+  
   canMsg[2] = tmp_EL;
   canMsg[3] = tmp_EL >> 8;
 
   
-  CAN.sendMsgBuf(CAN_EL_Msg_ID, 0, 4, canMsg); 
+// Battery Amps. A7 input
+  tmp_EL = analogRead(7);
+
+  // convert the value into milliamps based on the parameters of the sensor
+  // for 40A/75mV shunt with LMP8603 amplifier (zero-center with x100 amplification) with standard 5v reference voltage
+  // K = (5*40)/(1024*0.075*100) = 0.026041666(A)
+  // * 1000(mA) = 26.0417
+  
+  tmp_EL = tmp_EL - 512;  // amplifier is centre-zero. At zero current the voltage will be 2.5 volts (half the 1024 units range)
+  
+  tmp_EL = (float)tmp_EL * 26.0417;  
+  
+  canMsg[4] = tmp_EL;
+  canMsg[5] = tmp_EL >> 8;
+
+  
+  CAN.sendMsgBuf(CAN_EL_Msg_ID, 0, 6, canMsg); 
   
   CAN_EL_Timestamp = millis();
 }
@@ -355,8 +400,6 @@ if (millis() > CAN_EL_Timestamp + CAN_EL_Period + random(0, 50)) {
 // Send temperatures
 if (millis() > CAN_TMP_Timestamp + CAN_TMP_Period + random(0, 50)) {
 
-
- // measure_channel(TCS_CS_PIN, 1, TEMPERATURE);      // Ch 9: RTD PT-200
 
   canMsg[0] = EGT[1];
   canMsg[1] = EGT[1] >> 8;
