@@ -43,6 +43,17 @@ unsigned int PPR = 4; // Pulses per revolution.
 unsigned long FlowCounter = 0;
 unsigned long FlowTimestamp = 0;
 unsigned int FuelFlow = 0;
+
+// Moving Average array for fuel flow calculation
+#define FlowArraySize 10 // averaging accross last 10 values
+long FlowCountArray[FlowArraySize];
+long FlowTimeArray[FlowArraySize];
+int FlowArrayIndex = 0;
+long FlowCountSum =0;
+long FlowTimeSum =0;
+
+
+
 boolean EngineRunning = false;
 // END of timing section
 
@@ -52,7 +63,7 @@ unsigned char canMsg[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 //RPM
 const unsigned int CAN_RPM_Msg_ID = 50; // RPM CAN Msg ID in DEC
-const unsigned int CAN_RPM_Period = 500; // How often message sent in milliseconds
+const unsigned int CAN_RPM_Period = 300; // How often message sent in milliseconds
 unsigned long CAN_RPM_Timestamp = 0; // when was the last message sent
 unsigned int FuelPressure;   // Fuel pressure value in Volts ADC3 x 1000 
 
@@ -67,8 +78,8 @@ unsigned int TankLevel1 = 0;
 const unsigned int CAN_OIL_Msg_ID = 81; // CAN Msg ID in DEC 
 const unsigned int CAN_OIL_Period = 200; // How often message sent in milliseconds
 unsigned long CAN_OIL_Timestamp = 0; // when was the last message sent
-unsigned int OIL_Pressure = 0;
-unsigned int OIL_Temperature = 0;
+int OIL_Pressure = 0;
+int OIL_Temperature = 0;
 
 //Head and exhaust temperatures
 const unsigned int CAN_TMP_Msg_ID = 82; // CAN Msg ID in DEC ************* THE FIRST OF THREE **************************
@@ -116,14 +127,14 @@ int Hobbs_Offset = 0; //current offset for this run
 unsigned long HobbsTotalTime = 0;
 unsigned long HobbsRevs = 0;
 unsigned long tmpHobbsRevs = 0;
-unsigned int HobbsWritePeriod = 60000; // Write (update) data into EEPROM every 1 minute
+unsigned int HobbsWritePeriod = 120000; // Write (update) data into EEPROM every 2 minutes
 unsigned long HobbsWriteTimestamp = 0; // when was the last update
 
 
 void setup()
 {
 
-    analogReference(INTERNAL);
+    analogReference(DEFAULT);   // All analog measurements will be done referencing 5v bus.
     
     attachInterrupt(0, TimingMeter0, RISING);
     attachInterrupt(1, TimingMeter1, RISING);
@@ -296,15 +307,15 @@ if (millis() > CAN_TT_Timestamp + CAN_TT_Period + random(0, 50)) {
 // ============================== Send Fuel Tank Levels ============================================================
 if (millis() > CAN_FT_Timestamp + CAN_FT_Period + random(0, 50)) {
 
-  TankLevel1 = float(analogRead(2))*82/1023; // Full tank is 82 litres
-  
+  TankLevel1 = analogRead(2);
+
+  GetFuel(); // adjust this procedure to calibrate fuel reading
+
   canMsg[0] = TankLevel1;
   canMsg[1] = TankLevel1 >> 8;
 
   CAN.sendMsgBuf(CAN_FT_Msg_ID, 0, 2, canMsg); 
 
-  Serial.print("TankLevel1: ");
-  Serial.println(TankLevel1);
  // LoopTimer = millis();
   
   CAN_FT_Timestamp = millis();
@@ -318,16 +329,22 @@ if (millis() > CAN_OIL_Timestamp + CAN_OIL_Period + random(0, 50)) {
   OIL_Pressure = analogRead(3);
 
   // Pressure sensor range: up to 150 PSI (~10 bars)
-  // sensor supplies voltage 0.5 - 4.5v proportional to pressure 1 - 10 bars
+  // sensor supplies voltage 0.5 - 4.5v proportional to pressure 1.01 - 10 bars
   // Information sent in millibars, Bars x 1000 (kPa x 10)
-  // Reading shift
-  // S = 0.5*1024/5 = 102
+  // assumptions
+  //    voltage is linear from 1 to 10 Bars gauge pressure (to be confirmed experimentally)
+  //    voltage at 0 bars is 0.5v (0.489 in my case)
+  //    Voltage at 10 Bars is 4.5v
   // Reading conversion coefficient:
-  // K = ((10 - 1)/(4.5 - 0.5))*(5/1024) = 0.010986
-  // Convert to millibars K * 1000 = 10.98633
+  // K = (10/(4.5-0.489))*(5/1024) = 0.01217
+  // Convert to millibars K * 1000 = 12.17
 
-  OIL_Pressure = OIL_Pressure - 102; // apply shift
-  OIL_Pressure = (float)OIL_Pressure * 10.98633;
+   OIL_Pressure = OIL_Pressure - 100; // voltage at 0 bars is 0.5v (0.489 in my case) ~ 100 ADC units
+   if (OIL_Pressure < 0) {
+    OIL_Pressure = 0;
+   }
+
+   OIL_Pressure = (float)OIL_Pressure * 12.17;
 
   canMsg[0] = OIL_Pressure;
   canMsg[1] = OIL_Pressure >> 8;
@@ -455,10 +472,25 @@ if (millis() > CAN_TMP_Timestamp + CAN_TMP_Period + random(0, 50)) {
 // ==================  Send RPM  ================================================================
 if (millis() > CAN_RPM_Timestamp + CAN_RPM_Period + random(0, 50)) {
   
-  //Serial.print("RPM: ");
-  //Serial.println(RPM);
+  FuelPressure = analogRead(4);
+  // Pressure sensor range: up to 1 Bar
+  // sensor supplies voltage 0.5 - 4.5v proportional to pressure 0 - 1 bars
+  // Information sent in millibars, Bars x 1000 (kPa x 10)
+  // assumptions
+  //    voltage is linear from 0 to 1 Bars gauge pressure (to be confirmed experimentally)
+  //    voltage at 0 bars is 0.5v (0.489 in my case)
+  //    Voltage at 1 Bars is 4.5v
+  // Reading conversion coefficient:
+  // K = (1/(4.5-0.489))*(5/1024) = 0.001217
+  // Convert to millibars K * 1000 = 1.217
 
-  FuelPressure = analogRead(3)/30;
+  FuelPressure = FuelPressure - 100; // voltage at 0 bars is 0.5v (0.489 in my case) ~ 100 ADC units
+  if (FuelPressure < 0) {
+    FuelPressure = 0;
+  }
+
+  FuelPressure = (float)FuelPressure * 1.217;
+  
   Get_FuelFlow();
 
   canMsg[0] = RPM;

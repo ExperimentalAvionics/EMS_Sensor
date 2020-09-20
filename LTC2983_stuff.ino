@@ -112,11 +112,11 @@ if (CYL == 4) { // differential sensors for 4 cyl engine
   
       get_channel_data(TCS_CS_PIN, TCS_Channel * Channel_Multiplier, TEMPERATURE);
 
-   Serial.print("Channel = ");
-   Serial.println(TCS_Channel * Channel_Multiplier);
-   Serial.print("Temp = ");
-   Serial.println(TCS_Result);
-   Serial.println("");
+//   Serial.print("Channel = ");
+//   Serial.println(TCS_Channel * Channel_Multiplier);
+//   Serial.print("Temp = ");
+//   Serial.println(TCS_Result);
+//   Serial.println("");
 
 
     if (CYL == 4) {  // 4 cyl engine board
@@ -318,11 +318,12 @@ void get_channel_data(uint8_t chip_select, uint8_t channel_number, uint8_t chann
   TCS_Error = fault_data;
  // print_fault_data(fault_data);
 
-
+// Error debuging code:
+/*
   if (TCS_Error>1) {
 
-   Serial.print(F("\nChannel "));
-   Serial.println(channel_number);
+  Serial.print(F("\nChannel "));
+  Serial.println(channel_number);
   Serial.print(F("  FAULT DATA = "));
   Serial.println(fault_data, BIN);
 
@@ -348,7 +349,7 @@ void get_channel_data(uint8_t chip_select, uint8_t channel_number, uint8_t chann
   if (fault_data == 0b11111111)
     Serial.println(F("CONFIGURATION ERROR !!!!!!"));
   }
-
+*/
 
 
   signed_data = raw_conversion_result;
