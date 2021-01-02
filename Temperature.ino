@@ -21,3 +21,20 @@ float c1 = 0.0012718948770798462, c2 = 0.0003326009074864466, c3 = -3.9023201666
   OIL_Temperature = T*10;
   
 }
+
+
+
+// Get CHT readings from thermistors normally installed on Rotax 912 engines
+float Get_CHT_Rotax(float ThermistorReading) {
+
+float logR1,  T;
+float c1 = -0.013733951254788702, c2 = 0.003301937438448783, c3 = -0.00001760449381455601;
+// Online coefficient calculator https://sanjit.wtf/Calibrator/webCalibrator.html
+  
+  logR1 = log(ThermistorReading);
+  T = (1.0 / (c1 + c2*logR1 + c3*logR1*logR1*logR1)); // https://en.wikipedia.org/wiki/Steinhart%E2%80%93Hart_equation
+  T = T - 273.15;
+
+  return T;
+  
+}

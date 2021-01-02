@@ -25,8 +25,33 @@ void configure_channels()
     // ----- Channel 4: Assign  -----
     assign_channel(TCS_CS_PIN, 8, channel_assignment_data);
 
+/*
+    // Use this section for J-type thermocouples as CHT sensors (usually aircooled engines)
     // ----------------------------------------------- CHT ---------------------------------------------------------
     channel_assignment_data = SENSOR_TYPE__TYPE_J_THERMOCOUPLE |    TC_COLD_JUNCTION_CH__20 |    TC_DIFFERENTIAL |    TC_OPEN_CKT_DETECT__YES |    TC_OPEN_CKT_DETECT_CURRENT__10UA;
+  
+    // ----- Channel 7: Assign  -----
+    assign_channel(TCS_CS_PIN, 10, channel_assignment_data);
+  
+    // ----- Channel 8: Assign  -----
+    assign_channel(TCS_CS_PIN, 12, channel_assignment_data);
+  
+    // ----- Channel 9: Assign  -----
+    assign_channel(TCS_CS_PIN, 14, channel_assignment_data);
+  
+    // ----- Channel 10: Assign  -----
+    assign_channel(TCS_CS_PIN, 16, channel_assignment_data);
+*/
+
+    // Use this section for Thermistors as CHT sensors (usually water-cooled engines like Rotax 912 etc)
+    // This method is a bit of a hack
+    // Normally thermistors require a calibrated "sense" resistor to get accurate reading.
+    // In order to simplify the system, the thermistors will be treated like diode and its "temperature" output as a "resistance"
+    // It will allow to use Steinhart-Hart formula to calculate actual tepmerature  (see the Get_CHT_Rotax() function)
+    
+    
+    // ----------------------------------------------- CHT ---------------------------------------------------------
+    channel_assignment_data = SENSOR_TYPE__OFF_CHIP_DIODE |    DIODE_SINGLE_ENDED |    DIODE_NUM_READINGS__2 |    DIODE_AVERAGING_OFF |    DIODE_CURRENT__20UA_80UA_160UA; 
   
     // ----- Channel 7: Assign  -----
     assign_channel(TCS_CS_PIN, 10, channel_assignment_data);
@@ -63,7 +88,8 @@ void configure_channels()
   
     // ----- Channel 6: Assign  -----
     assign_channel(TCS_CS_PIN, 6, channel_assignment_data);
-  
+
+    // For thermistor-based CHT see the code above (for the 4-cyl configuration
     // ----------------------------------------------- CHT ---------------------------------------------------------
     channel_assignment_data = SENSOR_TYPE__TYPE_J_THERMOCOUPLE |    TC_COLD_JUNCTION_CH__20 |    TC_SINGLE_ENDED |    TC_OPEN_CKT_DETECT__YES |    TC_OPEN_CKT_DETECT_CURRENT__10UA;
   
@@ -149,25 +175,29 @@ if (CYL == 4) { // differential sensors for 4 cyl engine
       }
 
       if (TCS_Channel == 5) {
-           CHT[1] = TCS_Result;
+//           CHT[1] = TCS_Result;
+           CHT[1] = Get_CHT_Rotax(TCS_Result);
            if (TCS_Error > 1) {
                CHT[1] = 0;
            }
       }
       if (TCS_Channel == 6) {
-           CHT[2] = TCS_Result;
+//           CHT[2] = TCS_Result;
+           CHT[2] = Get_CHT_Rotax(TCS_Result);
            if (TCS_Error > 1) {
                CHT[2] = 0;
            }
       }
       if (TCS_Channel == 7) {
-           CHT[3] = TCS_Result;
+//           CHT[3] = TCS_Result;
+           CHT[3] = Get_CHT_Rotax(TCS_Result);
            if (TCS_Error > 1) {
                CHT[3] = 0;
            }
       }
       if (TCS_Channel == 8) {
-           CHT[4] = TCS_Result;
+//           CHT[4] = TCS_Result;
+           CHT[4] = Get_CHT_Rotax(TCS_Result);
            if (TCS_Error > 1) {
                CHT[4] = 0;
            }
@@ -315,7 +345,11 @@ void get_channel_data(uint8_t chip_select, uint8_t channel_number, uint8_t chann
 
   // 8 MSB's show the fault data
   fault_data = raw_data >> 24;
+  fault_data = fault_data & ~SENSOR_ABOVE; // exclude sensor above from the error to accomodate Rotax CHT hack
   TCS_Error = fault_data;
+
+  
+  
  // print_fault_data(fault_data);
 
 // Error debuging code:
@@ -326,7 +360,6 @@ void get_channel_data(uint8_t chip_select, uint8_t channel_number, uint8_t chann
   Serial.println(channel_number);
   Serial.print(F("  FAULT DATA = "));
   Serial.println(fault_data, BIN);
-
 
  
  if (fault_data & SENSOR_HARD_FAILURE) {

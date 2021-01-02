@@ -520,13 +520,11 @@ if (millis() > CAN_RPM_Timestamp + CAN_RPM_Period + random(0, 50)) {
 
 
 /********************/
-/* populate global variable as te dotat become available  */
+/* populate global variable as the data becomes available  */
 
   TCS_Read_All_Sensors();
  
 /*********************/
-
-
 
 
  LoopCounter++;
