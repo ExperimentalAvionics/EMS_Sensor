@@ -38,10 +38,11 @@ unsigned long EngineTimestamp = 0;
 unsigned long EngineTimerTMP = 0; //temporary variable
 unsigned long EngineTimer = 0; //timstemp for Hobbs time recording
 unsigned int RPM = 0;
-unsigned int PPR = 4; // Pulses per revolution. 
+unsigned int PPR = 1; // Pulses per revolution. 
 
 unsigned long FlowCounter = 0;
 unsigned long FlowTimestamp = 0;
+unsigned long LastPulseTimestamp_Flow = 0;
 unsigned int FuelFlow = 0;
 
 // Moving Average array for fuel flow calculation
@@ -63,27 +64,28 @@ unsigned char canMsg[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 //RPM
 const unsigned int CAN_RPM_Msg_ID = 50; // RPM CAN Msg ID in DEC
-const unsigned int CAN_RPM_Period = 300; // How often message sent in milliseconds
+const unsigned int CAN_RPM_Period = 500; // How often message sent in milliseconds
 unsigned long CAN_RPM_Timestamp = 0; // when was the last message sent
+unsigned long LastPulseTimestamp_RPM = 0;
 unsigned int FuelPressure;   // Fuel pressure value in Volts ADC3 x 1000 
 
 
 //Fuel Tanks levels
 const unsigned int CAN_FT_Msg_ID = 80; // CAN Msg ID in DEC
-const unsigned int CAN_FT_Period = 200; // How often message sent in milliseconds
+const unsigned int CAN_FT_Period = 1000; // How often message sent in milliseconds
 unsigned long CAN_FT_Timestamp = 0; // when was the last message sent
 unsigned int TankLevel1 = 0;
 
 //Oil temperatures and pressure
 const unsigned int CAN_OIL_Msg_ID = 81; // CAN Msg ID in DEC 
-const unsigned int CAN_OIL_Period = 200; // How often message sent in milliseconds
+const unsigned int CAN_OIL_Period = 600; // How often message sent in milliseconds
 unsigned long CAN_OIL_Timestamp = 0; // when was the last message sent
 int OIL_Pressure = 0;
 int OIL_Temperature = 0;
 
 //Head and exhaust temperatures
 const unsigned int CAN_TMP_Msg_ID = 82; // CAN Msg ID in DEC ************* THE FIRST OF THREE **************************
-const unsigned int CAN_TMP_Period = 200; // How often message sent in milliseconds
+const unsigned int CAN_TMP_Period = 300; // How often message sent in milliseconds
 unsigned long CAN_TMP_Timestamp = 0; // when was the last message sent
 unsigned int tmp_TMP = 0;
 
@@ -97,7 +99,7 @@ unsigned int TCS_Channel = 1;
 
 //Volts and Amps
 const unsigned int CAN_EL_Msg_ID = 85; // CAN Msg ID in DEC 
-const unsigned int CAN_EL_Period = 200; // How often message sent in milliseconds
+const unsigned int CAN_EL_Period = 300; // How often message sent in milliseconds
 unsigned long CAN_EL_Timestamp = 0; // when was the last message sent
 int tmp_EL = 0;
 
@@ -105,7 +107,7 @@ int tmp_EL = 0;
 
 // Total Time counters
 const unsigned int CAN_TT_Msg_ID = 112; // CAN Msg ID in DEC
-const unsigned int CAN_TT_Period = 1000; // How often message sent in milliseconds
+const unsigned int CAN_TT_Period = 10000; // How often message sent in milliseconds
 unsigned long CAN_TT_Timestamp = 0; // when was the last message sent
 
 //
@@ -257,10 +259,10 @@ if (millis() > HobbsWritePeriod + HobbsWriteTimestamp) {
 
 // ================= Engine RPM and fuel flow stuff ======================================================================
 //if ((Counter0 > HobbsRevs*PPR + 200) || (millis() - EngineTimestamp > 1000)) {
-if (millis() - EngineTimestamp > 2000) {
-
-  Get_RPM();  
-}
+//if (micros() - EngineTimestamp > 2000000) {
+//
+//  Get_RPM();  
+//}
     // update engine time counters 
     //engine started
     if (RPM > 0 && not EngineRunning) {
@@ -278,7 +280,7 @@ if (millis() - EngineTimestamp > 2000) {
 
 
 // ====================  Send total time (Hobbs)  ================================================================
-if (millis() > CAN_TT_Timestamp + CAN_TT_Period + random(0, 50)) {
+if (millis() > CAN_TT_Timestamp + CAN_TT_Period + random(0, 500)) {
 
     canMsg[0] = HobbsRevs;
     canMsg[1] = HobbsRevs >> 8;
@@ -492,6 +494,8 @@ if (millis() > CAN_RPM_Timestamp + CAN_RPM_Period + random(0, 50)) {
   FuelPressure = (float)FuelPressure * 1.217;
   
   Get_FuelFlow();
+
+  Get_RPM();
 
   canMsg[0] = RPM;
   canMsg[1] = RPM >> 8;

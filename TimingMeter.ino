@@ -1,11 +1,13 @@
 void TimingMeter0()
  {
    Counter0++;  // RPM Counter
+   LastPulseTimestamp_RPM = micros();
  }
 
  void TimingMeter1()
  {
    Counter1++;  // Fuel Flow counter
+   LastPulseTimestamp_Flow = micros();
  }
 
  void Get_RPM () {
@@ -13,13 +15,12 @@ void TimingMeter0()
   unsigned long CurrentTimestap = 0;
   unsigned long CurrentCounter = 0;
 
-// note the counter recorded twice. because it could increase while the function is running.
-// didnt want to disable interrupt.
-
   CurrentCounter = Counter0/PPR;
-  CurrentTimestap = millis();
+  CurrentTimestap = LastPulseTimestamp_RPM;
 
-  RPM = (60000 * (CurrentCounter - HobbsRevs))/(CurrentTimestap - EngineTimestamp);
+// weird trick to deal with limitations of integer calculations 
+  RPM = (30000000UL * (CurrentCounter - HobbsRevs))/(CurrentTimestap - EngineTimestamp);
+  RPM = RPM * 2 + 2;
    
    HobbsRevs = CurrentCounter;
    EngineTimestamp = CurrentTimestap;
