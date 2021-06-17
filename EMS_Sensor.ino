@@ -16,6 +16,10 @@
 
 #include <mcp_can.h>
 
+unsigned char len = 0;
+unsigned char buf[8];
+unsigned char ext = 0;
+
 //EMS Sensor Board configuration - 4 or 6 cylinders engine
 const int CYL = 4;
 
@@ -30,6 +34,7 @@ unsigned long canId;
 // Timing variables and constants
 
 unsigned long SystemTime = 0; //System time UTC in Unix format (seconds since Jan 01 1970). Data received from CAN MsgId = 25
+unsigned long SystemTimeLocalMillis = 0;
 
 unsigned long Counter0;
 unsigned long Counter1;
@@ -67,7 +72,7 @@ const unsigned int CAN_RPM_Msg_ID = 50; // RPM CAN Msg ID in DEC
 const unsigned int CAN_RPM_Period = 500; // How often message sent in milliseconds
 unsigned long CAN_RPM_Timestamp = 0; // when was the last message sent
 unsigned long LastPulseTimestamp_RPM = 0;
-unsigned int FuelPressure;   // Fuel pressure value in Volts ADC3 x 1000 
+unsigned int FuelPressure;   // Fuel pressure value in millibars 
 
 
 //Fuel Tanks levels
@@ -76,12 +81,23 @@ const unsigned int CAN_FT_Period = 1000; // How often message sent in millisecon
 unsigned long CAN_FT_Timestamp = 0; // when was the last message sent
 unsigned int TankLevel1 = 0;
 
+// Fuel pressure
+#define FuelPressureArraySize 10 // averaging accross last 10 values
+unsigned int FuelPressureArray[FuelPressureArraySize];
+unsigned int FuelPressureArrayIndex = 0;
+unsigned int FuelPressureSum = 0;
+
 //Oil temperatures and pressure
 const unsigned int CAN_OIL_Msg_ID = 81; // CAN Msg ID in DEC 
 const unsigned int CAN_OIL_Period = 600; // How often message sent in milliseconds
 unsigned long CAN_OIL_Timestamp = 0; // when was the last message sent
 int OIL_Pressure = 0;
 int OIL_Temperature = 0;
+
+#define OilPressureArraySize 10 // averaging accross last 10 values
+unsigned int OilPressureArray[OilPressureArraySize];
+unsigned int OilPressureArrayIndex = 0;
+unsigned int OilPressureSum = 0;
 
 //Head and exhaust temperatures
 const unsigned int CAN_TMP_Msg_ID = 82; // CAN Msg ID in DEC ************* THE FIRST OF THREE **************************
@@ -180,18 +196,26 @@ void setup()
 // read current HobbsRevs from EEPROM or CAN and set it it here along with Counter0
 // find a new offset for this run by looking for the max value of the Engine rev counter (last 4 bytes in the 12 bytes blocks
    Hobbs_Offset = 0;
+   Serial.println("==== Log ===="); 
    while(Hobbs_Offset < 120){
       HobbsRevs = tmpHobbsRevs;
+      EEPROM.get(Hobbs_Offset, SystemTime);
       EEPROM.get(Hobbs_Offset + 4, HobbsTotalTime);
       EEPROM.get(Hobbs_Offset + 8, tmpHobbsRevs);
       if (tmpHobbsRevs == 4294967295) {
         tmpHobbsRevs = 0;
       }
 
-      Serial.print("Scan EEPROM offset: ");
-      Serial.println(Hobbs_Offset);    
+      Serial.print("EEPROM offset: ");
+      Serial.print(Hobbs_Offset);    
 
-      Serial.print("Scan Hobbs Revs: ");
+      Serial.print(" Date: ");
+      Serial.print(SystemTime); 
+
+      Serial.print(" Total Time: ");
+      Serial.print(HobbsTotalTime); 
+
+      Serial.print(" Hobbs Revs: ");
       Serial.println(tmpHobbsRevs);
       if (HobbsRevs > tmpHobbsRevs) {
         break;
@@ -201,7 +225,8 @@ void setup()
    }
 
     Hobbs_Offset = Hobbs_Offset - 12; // go back 1 step
-
+    
+    EEPROM.get(Hobbs_Offset, SystemTime);
     EEPROM.get(Hobbs_Offset + 4, HobbsTotalTime);
     EEPROM.get(Hobbs_Offset + 8, HobbsRevs);
 
@@ -216,21 +241,48 @@ void setup()
     }
 
    Counter0 = HobbsRevs * PPR;
-
+Serial.println(" "); 
 Serial.print("EEPROM offset: ");
 Serial.println(Hobbs_Offset);    
+
+Serial.print("Max Timestamp: ");
+Serial.println(SystemTime);  
 
 Serial.print("Max HobbsTotalTime: ");
 Serial.println(HobbsTotalTime);    
 
 Serial.print("Max Hobbs Revs: ");
-Serial.println(HobbsRevs); 
+Serial.println(HobbsRevs);
+Serial.println(" "); 
+SystemTime = 0; // reset system time to zero. It will be updated later to actual time when the message with id 25 arrives.
+
 }
 
 void loop()
 {
+  if(CAN_MSGAVAIL == CAN.checkReceive())            // check if data coming
+    {
+      CAN.readMsgBuf(&canId, &ext, &len, buf);    // read data,  len: data length, buf: data buf
+      switch (canId) {
+        case 25:
+        {
+        // System Time (Clock)
+        // "Master" clock unit sends current time every 30 seconds
+           SystemTime = ((unsigned long)buf[3] << 24) | ((unsigned long)buf[2] << 16) | ((unsigned long)buf[1] << 8) | (unsigned long)buf[0];
+           SystemTimeLocalMillis = millis();  // use this variable to calculate current time when required
+           Serial.print("Received SystemTime: ");
+           Serial.println(SystemTime); 
+        }
+        break;
+        default: 
+        // if nothing else matches, do the default
+        // default is optional
+        break;
+    }
 
-    if (EngineRunning and millis() > EngineTimer + 15000) {
+    }
+
+  if (EngineRunning and millis() > EngineTimer + 15000) {
       EngineTimerTMP = millis();
       HobbsTotalTime = HobbsTotalTime + (EngineTimerTMP - EngineTimer)/1000;
       EngineTimer = EngineTimerTMP;
@@ -238,8 +290,8 @@ void loop()
   
 
 // ============================ Update Hobbs - Engine total time =======================================================
-if (millis() > HobbsWritePeriod + HobbsWriteTimestamp) {
-    EEPROM.put(Hobbs_Offset, SystemTime);
+if ((millis() > HobbsWritePeriod + HobbsWriteTimestamp) and tmpHobbsRevs < HobbsRevs) {  // save engine time data every 2 minutes. do not write EEPROM if engine is not running
+    EEPROM.put(Hobbs_Offset, SystemTime+(millis()-SystemTimeLocalMillis));
     EEPROM.put(Hobbs_Offset + 4, HobbsTotalTime);
     EEPROM.put(Hobbs_Offset + 8, HobbsRevs);
 
@@ -253,6 +305,7 @@ if (millis() > HobbsWritePeriod + HobbsWriteTimestamp) {
     Serial.println(HobbsRevs);   
     
     HobbsWriteTimestamp = millis();
+    tmpHobbsRevs = HobbsRevs;
 }
 
 
@@ -265,16 +318,16 @@ if (millis() > HobbsWritePeriod + HobbsWriteTimestamp) {
 //}
     // update engine time counters 
     //engine started
-    if (RPM > 0 && not EngineRunning) {
+    if (RPM > 100 && not EngineRunning) {
       EngineTimer = millis();
       EngineRunning = true;
-      Serial.println("========================================== Engine Started ");
+      Serial.println("=== Engine Started ===");
     } 
     
     //engine stopped
-    if (RPM == 0 && EngineRunning) {
+    if (RPM < 100 && EngineRunning) {
       EngineRunning = false;
-      Serial.println("===================================== Engine Stopped ");
+      Serial.println("=== Engine Stopped ===");
     } 
 
 
@@ -327,26 +380,6 @@ if (millis() > CAN_FT_Timestamp + CAN_FT_Period + random(0, 50)) {
 // ======================== Send OIL data =========================================================================
 if (millis() > CAN_OIL_Timestamp + CAN_OIL_Period + random(0, 50)) {
 
-// Oil pressure, A3 input
-  OIL_Pressure = analogRead(3);
-
-  // Pressure sensor range: up to 150 PSI (~10 bars)
-  // sensor supplies voltage 0.5 - 4.5v proportional to pressure 1.01 - 10 bars
-  // Information sent in millibars, Bars x 1000 (kPa x 10)
-  // assumptions
-  //    voltage is linear from 1 to 10 Bars gauge pressure (to be confirmed experimentally)
-  //    voltage at 0 bars is 0.5v (0.489 in my case)
-  //    Voltage at 10 Bars is 4.5v
-  // Reading conversion coefficient:
-  // K = (10/(4.5-0.489))*(5/1024) = 0.01217
-  // Convert to millibars K * 1000 = 12.17
-
-   OIL_Pressure = OIL_Pressure - 100; // voltage at 0 bars is 0.5v (0.489 in my case) ~ 100 ADC units
-   if (OIL_Pressure < 0) {
-    OIL_Pressure = 0;
-   }
-
-   OIL_Pressure = (float)OIL_Pressure * 12.17;
 
   canMsg[0] = OIL_Pressure;
   canMsg[1] = OIL_Pressure >> 8;
@@ -474,28 +507,14 @@ if (millis() > CAN_TMP_Timestamp + CAN_TMP_Period + random(0, 50)) {
 // ==================  Send RPM  ================================================================
 if (millis() > CAN_RPM_Timestamp + CAN_RPM_Period + random(0, 50)) {
   
-  FuelPressure = analogRead(4);
-  // Pressure sensor range: up to 1 Bar
-  // sensor supplies voltage 0.5 - 4.5v proportional to pressure 0 - 1 bars
-  // Information sent in millibars, Bars x 1000 (kPa x 10)
-  // assumptions
-  //    voltage is linear from 0 to 1 Bars gauge pressure (to be confirmed experimentally)
-  //    voltage at 0 bars is 0.5v (0.489 in my case)
-  //    Voltage at 1 Bars is 4.5v
-  // Reading conversion coefficient:
-  // K = (1/(4.5-0.489))*(5/1024) = 0.001217
-  // Convert to millibars K * 1000 = 1.217
 
-  FuelPressure = FuelPressure - 100; // voltage at 0 bars is 0.5v (0.489 in my case) ~ 100 ADC units
-  if (FuelPressure < 0) {
-    FuelPressure = 0;
-  }
 
-  FuelPressure = (float)FuelPressure * 1.217;
-  
   Get_FuelFlow();
 
   Get_RPM();
+
+// Serial.print("RPM = ");
+// Serial.println(RPM);
 
   canMsg[0] = RPM;
   canMsg[1] = RPM >> 8;
@@ -527,7 +546,10 @@ if (millis() > CAN_RPM_Timestamp + CAN_RPM_Period + random(0, 50)) {
 /* populate global variable as the data becomes available  */
 
   TCS_Read_All_Sensors();
- 
+
+  Get_Fuel_Pressure();
+  Get_Oil_Pressure();
+  
 /*********************/
 
 

@@ -46,7 +46,7 @@ void configure_channels()
     // Use this section for Thermistors as CHT sensors (usually water-cooled engines like Rotax 912 etc)
     // This method is a bit of a hack
     // Normally thermistors require a calibrated "sense" resistor to get accurate reading.
-    // In order to simplify the system, the thermistors will be treated like diode and its "temperature" output as a "resistance"
+    // In order to simplify the system, the thermistors will be treated like diode and its "temperature" output as "resistance"
     // It will allow to use Steinhart-Hart formula to calculate actual tepmerature  (see the Get_CHT_Rotax() function)
     
     

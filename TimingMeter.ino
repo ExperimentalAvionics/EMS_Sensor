@@ -34,6 +34,7 @@ void TimingMeter0()
 // Pulse frequency range 11.5 - 1322 Hz
  
   const float Kfactor = 17964;
+  const float ReturnFlow = 6.67; // fuel flow (L/HR) when engine is not running (return line flow)
   unsigned long CurrentTimestap = 0;
   unsigned long CurrentCounter = 0;
   
@@ -64,7 +65,11 @@ void TimingMeter0()
 // We have 2 bytes to send over CAN, so we can multiply the number by 100 to increase precision. It will come handy for performance calculations
 
 
-  FuelFlow = (float)FlowCountSum*3600000.0*100.0/((float)FlowTimeSum * Kfactor);
+  FuelFlow = (float)FlowCountSum*3600000.0*100.0/((float)FlowTimeSum * Kfactor) - (ReturnFlow * 100.0);
+  
+  if (FuelFlow < 100) {  // Flow can't be lower than 1 L/HR so this elogic eliminates useless noise around 0
+    FuelFlow = 0;
+  }
 
 
   
