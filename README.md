@@ -12,6 +12,9 @@ Originally the EMS was built for 6 cylinder Jabiru engine but over time the dire
 
 ## Release Notes: ##
 
+### 2021-07-16 ###
+* Increased the size of the Moving Average filters for Fuel Pressure and Oil Pressure. Reason - suppress vibration-induced noise
+
 ### 2021-06-15 ###
 * General code clean-up
 * Fuel tank calibration data changed to match my fuel tank :)

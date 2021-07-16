@@ -82,7 +82,7 @@ unsigned long CAN_FT_Timestamp = 0; // when was the last message sent
 unsigned int TankLevel1 = 0;
 
 // Fuel pressure
-#define FuelPressureArraySize 10 // averaging accross last 10 values
+#define FuelPressureArraySize 20 // averaging accross last 20 values
 unsigned int FuelPressureArray[FuelPressureArraySize];
 unsigned int FuelPressureArrayIndex = 0;
 unsigned int FuelPressureSum = 0;
@@ -94,7 +94,7 @@ unsigned long CAN_OIL_Timestamp = 0; // when was the last message sent
 int OIL_Pressure = 0;
 int OIL_Temperature = 0;
 
-#define OilPressureArraySize 10 // averaging accross last 10 values
+#define OilPressureArraySize 40 // averaging accross last 40 values
 unsigned int OilPressureArray[OilPressureArraySize];
 unsigned int OilPressureArrayIndex = 0;
 unsigned int OilPressureSum = 0;
